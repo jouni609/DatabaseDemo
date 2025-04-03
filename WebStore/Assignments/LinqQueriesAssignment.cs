@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-//using WebStore.Entities;
+using WebStore.Entities;
 
 namespace WebStore.Assignments
 {
@@ -22,7 +22,7 @@ namespace WebStore.Assignments
     public class LinqQueriesAssignment
     {
 
-        /* TODO: Uncomment this code after generating the entity models
+
 
         private readonly WebStoreContext _dbContext;
 
@@ -41,10 +41,9 @@ namespace WebStore.Assignments
             // TODO: Write a LINQ query that fetches all customers
             //       and prints their names + emails to the console.
             // HINT: context.Customers
-            
-            var customers = await _dbContext.Customers
-               // .AsNoTracking() // optional for read-only
-               .ToListAsync();
+
+            var customers = await _dbContext.Customers.ToListAsync();
+            // .AsNoTracking() // optional for read-only
 
             Console.WriteLine("=== TASK 01: List All Customers ===");
 
@@ -53,7 +52,7 @@ namespace WebStore.Assignments
                 Console.WriteLine($"{c.FirstName} {c.LastName} - {c.Email}");
             }
 
-            
+
         }
 
         /// <summary>
@@ -68,12 +67,27 @@ namespace WebStore.Assignments
             // TODO: Write a query to return all orders,
             //       along with the associated customer name, order status,
             //       and the total quantity of items in that order.
+            var query = from o in _dbContext.Orders
+                        join c in _dbContext.Customers on o.CustomerId equals c.CustomerId
+                        select new
+                        {
+                            CustomerName = c.FirstName + " " + c.LastName,
+                            OrderStatus = o.OrderStatus,
+                            TotalQuantity = o.OrderItems.Sum(oi => oi.Quantity)
+                        };
 
             // HINT: Use Include/ThenInclude or projection with .Select(...).
             //       Summing the quantities: order.OrderItems.Sum(oi => oi.Quantity).
 
             Console.WriteLine(" ");
             Console.WriteLine("=== TASK 02: List Orders With Item Count ===");
+            foreach (var item in query)
+            {
+                Console.WriteLine($"{item.CustomerName}");
+                Console.WriteLine($"{item.OrderStatus}");
+                Console.WriteLine($"{item.TotalQuantity}");
+                Console.WriteLine("----------------------");
+            }
         }
 
         /// <summary>
@@ -85,8 +99,21 @@ namespace WebStore.Assignments
             // TODO: Write a query to fetch all products and sort them
             //       by descending price.
             // HINT: context.Products.OrderByDescending(p => p.Price)
+            var query = from p in _dbContext.Products
+                        orderby p.Price descending
+                        select new {
+                            p.Price,
+                            p.ProductName
+                        };
+
             Console.WriteLine(" ");
             Console.WriteLine("=== Task 03: List Products By Descending Price ===");
+            int count = 1;
+            foreach (var item in query)
+            {
+                Console.WriteLine($"{count}. {item.ProductName} - {item.Price:C}");
+                count++;
+            }
         }
 
         /// <summary>
@@ -212,6 +239,6 @@ namespace WebStore.Assignments
             Console.WriteLine(" ");
             Console.WriteLine("=== Task 10: Advanced Query Example ===");
         }
-        */
+
     }
 }
