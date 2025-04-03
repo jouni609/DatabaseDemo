@@ -130,6 +130,8 @@ namespace WebStore.Assignments
             //       and calculate their total price.
             // HINT: The total can be computed from each OrderItem:
             //       (oi.UnitPrice * oi.Quantity) - oi.Discount
+           /* var query = from oi in _dbContext.OrderItems */
+
             Console.WriteLine(" ");
             Console.WriteLine("=== Task 04: List Pending Orders With Total Price ===");
         }
