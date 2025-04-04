@@ -3,22 +3,7 @@ using WebStore.Entities;
 
 namespace WebStore.Assignments
 {
-    /// Additional tutorial materials https://dotnettutorials.net/lesson/linq-to-entities-in-entity-framework-core/
 
-    /// <summary>
-    /// This class demonstrates various LINQ query tasks 
-    /// to practice querying an EF Core database.
-    /// 
-    /// ASSIGNMENT INSTRUCTIONS:
-    ///   1. For each method labeled "TODO", write the necessary
-    ///      LINQ query to return or display the required data.
-    ///      
-    ///   2. Print meaningful output to the console (or return
-    ///      collections, as needed).
-    ///      
-    ///   3. Test each method by calling it from your Program.cs
-    ///      or test harness.
-    /// </summary>
     public class LinqQueriesAssignment
     {
 
@@ -32,52 +17,39 @@ namespace WebStore.Assignments
         }
 
 
-        /// <summary>
-        /// 1. List all customers in the database:
-        ///    - Print each customer's full name (First + Last) and Email.
-        /// </summary>
+
         public async Task Task01_ListAllCustomers()
         {
-            // TODO: Write a LINQ query that fetches all customers
-            //       and prints their names + emails to the console.
-            // HINT: context.Customers
-
-            var customers = await _dbContext.Customers.ToListAsync();
-            // .AsNoTracking() // optional for read-only
+            var customers = await _dbContext.Customers
+                .Select(c => new { FullName = c.FirstName + " " + c.LastName, c.Email })
+                .AsNoTracking()
+                .ToListAsync();
 
             Console.WriteLine("=== TASK 01: List All Customers ===");
 
             foreach (var c in customers)
             {
-                Console.WriteLine($"{c.FirstName} {c.LastName} - {c.Email}");
+                Console.WriteLine($"{c.FullName} - {c.Email}");
             }
 
 
         }
 
-        /// <summary>
-        /// 2. Fetch all orders along with:
-        ///    - Customer Name
-        ///    - Order ID
-        ///    - Order Status
-        ///    - Number of items in each order (the sum of OrderItems.Quantity)
-        /// </summary>
+
         public async Task Task02_ListOrdersWithItemCount()
         {
-            // TODO: Write a query to return all orders,
-            //       along with the associated customer name, order status,
-            //       and the total quantity of items in that order.
-            var query = from o in _dbContext.Orders
-                        join c in _dbContext.Customers on o.CustomerId equals c.CustomerId
-                        select new
-                        {
-                            CustomerName = c.FirstName + " " + c.LastName,
-                            OrderStatus = o.OrderStatus,
-                            TotalQuantity = o.OrderItems.Sum(oi => oi.Quantity)
-                        };
 
-            // HINT: Use Include/ThenInclude or projection with .Select(...).
-            //       Summing the quantities: order.OrderItems.Sum(oi => oi.Quantity).
+            var query = await _dbContext.Orders
+                .Select(o => new
+                {
+                    o.OrderId,
+                    CustomerName = o.Customer.FirstName + " " + o.Customer.LastName,
+                    o.OrderStatus,
+                    TotalQuantity = o.OrderItems.Sum(oi => oi.Quantity)
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
 
             Console.WriteLine(" ");
             Console.WriteLine("=== TASK 02: List Orders With Item Count ===");
@@ -90,21 +62,13 @@ namespace WebStore.Assignments
             }
         }
 
-        /// <summary>
-        /// 3. List all products (ProductName, Price),
-        ///    sorted by price descending (highest first).
-        /// </summary>
         public async Task Task03_ListProductsByDescendingPrice()
         {
-            // TODO: Write a query to fetch all products and sort them
-            //       by descending price.
-            // HINT: context.Products.OrderByDescending(p => p.Price)
-            var query = from p in _dbContext.Products
-                        orderby p.Price descending
-                        select new {
-                            p.Price,
-                            p.ProductName
-                        };
+            var query = await _dbContext.Products
+                .OrderByDescending(p => p.Price)
+                .Select(p => new { p.ProductName, p.Price })
+                .AsNoTracking()
+                .ToListAsync();
 
             Console.WriteLine(" ");
             Console.WriteLine("=== Task 03: List Products By Descending Price ===");
@@ -116,130 +80,216 @@ namespace WebStore.Assignments
             }
         }
 
-        /// <summary>
-        /// 4. Find all "Pending" orders (order status = "Pending")
-        ///    and display:
-        ///      - Customer Name
-        ///      - Order ID
-        ///      - Order Date
-        ///      - Total price (sum of unit_price * quantity - discount) for each order
-        /// </summary>
+
         public async Task Task04_ListPendingOrdersWithTotalPrice()
         {
-            // TODO: Write a query to fetch only PENDING orders,
-            //       and calculate their total price.
-            // HINT: The total can be computed from each OrderItem:
-            //       (oi.UnitPrice * oi.Quantity) - oi.Discount
-           /* var query = from oi in _dbContext.OrderItems */
+            var query = await _dbContext.Orders
+                .Where(o => o.OrderStatus == "Pending")
+                .Select(o => new
+                {
+                    o.OrderId,
+                    CustomerName = o.Customer.FirstName + " " + o.Customer.LastName,
+                    o.OrderDate,
+                    TotalPrice = o.OrderItems.Sum(oi => (oi.UnitPrice * oi.Quantity) - oi.Discount)
+                })
+                .AsNoTracking()
+                .ToListAsync();
 
             Console.WriteLine(" ");
             Console.WriteLine("=== Task 04: List Pending Orders With Total Price ===");
+            int count = 1;
+            foreach (var item in query)
+            {
+                Console.WriteLine($"{count}. {item.OrderId} - {item.TotalPrice:C}");
+                count++;
+            }
+
         }
 
-        /// <summary>
-        /// 5. List the total number of orders each customer has placed.
-        ///    Output should show:
-        ///      - Customer Full Name
-        ///      - Number of Orders
-        /// </summary>
+
         public async Task Task05_OrderCountPerCustomer()
         {
-            // TODO: Write a query that groups by Customer,
-            //       counting the number of orders each has.
+            var query = await _dbContext.Customers
+                .Select(c => new
+                {
+                    CustomerName = c.FirstName + " " + c.LastName,
+                    OrderCount = c.Orders.Count()
+                })
+                .AsNoTracking()
+                .ToListAsync();
 
-            // HINT: 
-            //  1) Join Orders and Customers, or
-            //  2) Use the navigation (context.Orders or context.Customers),
-            //     then group by customer ID or by the customer entity.
             Console.WriteLine(" ");
             Console.WriteLine("=== Task 05: Order Count Per Customer ===");
+
+            int count = 1;
+            foreach (var item in query)
+            {
+                Console.WriteLine($"{count}. {item.CustomerName} - {item.OrderCount} order total.");
+                count++;
+            }
         }
 
-        /// <summary>
-        /// 6. Show the top 3 customers who have placed the highest total order value overall.
-        ///    - For each customer, calculate SUM of (OrderItems * Price).
-        ///      Then pick the top 3.
-        /// </summary>
+
         public async Task Task06_Top3CustomersByOrderValue()
         {
-            // TODO: Calculate each customer's total order value 
-            //       using their Orders -> OrderItems -> (UnitPrice * Quantity - Discount).
-            //       Sort descending and take top 3.
 
-            // HINT: You can do this in a single query or multiple steps.
-            //       One approach:
-            //         1) Summarize each Order's total
-            //         2) Summarize for each Customer
-            //         3) Order by descending total
-            //         4) Take(3)
+            var query = await _dbContext.Customers
+                .Select(c => new
+                {
+                    CustomerName = c.FirstName + " " + c.LastName,
+                    TotalOrderValue = c.Orders
+                        .SelectMany(o => o.OrderItems)
+                        .Sum(oi => (oi.UnitPrice * oi.Quantity) - oi.Discount)
+                })
+                .OrderByDescending(c => c.TotalOrderValue)
+                .Take(3)
+                .AsNoTracking()
+                .ToListAsync();
+
+
+
             Console.WriteLine(" ");
             Console.WriteLine("=== Task 06: Top 3 Customers By Order Value ===");
+            int count = 1;
+            foreach (var item in query)
+            {
+                Console.WriteLine($"{count}. {item.CustomerName} - {item.TotalOrderValue:C} orders total.");
+                count++;
+            }
         }
 
-        /// <summary>
-        /// 7. Show all orders placed in the last 30 days (relative to now).
-        ///    - Display order ID, date, and customer name.
-        /// </summary>
         public async Task Task07_RecentOrders()
         {
-            // TODO: Filter orders to only those with OrderDate >= (DateTime.Now - 30 days).
-            //       Output ID, date, and the customer's name.
+ 
             Console.WriteLine(" ");
             Console.WriteLine("=== Task 07: Recent Orders ===");
+
         }
 
-        /// <summary>
-        /// 8. For each product, display how many total items have been sold
-        ///    across all orders.
-        ///    - Product name, total sold quantity.
-        ///    - Sort by total sold descending.
-        /// </summary>
         public async Task Task08_TotalSoldPerProduct()
         {
-            // TODO: Group or join OrdersItems by Product.
-            //       Summation of quantity.
+
+            var query = await _dbContext.Products
+                .Select(p => new
+                {
+                    p.ProductName,
+                    TotalSold = p.OrderItems.Sum(oi => oi.Quantity)
+                })
+                .OrderByDescending(p => p.TotalSold)
+                .AsNoTracking()
+                .ToListAsync();
+
             Console.WriteLine(" ");
             Console.WriteLine("=== Task 08: Total Sold Per Product ===");
+            int count = 1;
+            foreach (var item in query)
+            {
+                Console.WriteLine($"{count}. {item.ProductName} - {item.TotalSold}");
+                count++;
+            }
+
         }
 
-        /// <summary>
-        /// 9. List any orders that have at least one OrderItem with a Discount > 0.
-        ///    - Show Order ID, Customer name, and which products were discounted.
-        /// </summary>
+
         public async Task Task09_DiscountedOrders()
         {
-            // TODO: Identify orders with any OrderItem having (Discount > 0).
-            //       Display order details, plus the discounted products.
+
+            var query = await _dbContext.Orders
+                .Where(o => o.OrderItems.Any(oi => oi.Discount > 0))
+                .Select(o => new
+                {
+                    o.OrderId,
+                    CustomerName = o.Customer.FirstName + " " + o.Customer.LastName,
+                    DiscountedProducts = o.OrderItems
+                    .Where(oi => oi.Discount > 0)
+                    .Select(oi => new
+                    {
+                        oi.Product.ProductName,
+                        DiscountPercentage = oi.Discount,
+                        DiscountedPrice = oi.UnitPrice * (1 - (oi.Discount / 100m)),
+                    })
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
             Console.WriteLine(" ");
             Console.WriteLine("=== Task 09: Discounted Orders ===");
+            int count = 1;
+            foreach (var item in query)
+            {
+                Console.WriteLine($"{count}. OrderId: {item.OrderId} Customer name: {item.CustomerName}");
+                foreach (var product in item.DiscountedProducts)
+                {
+                    Console.WriteLine($" {product.ProductName} ({product.DiscountPercentage})% discount");
+                    Console.WriteLine($"Final Price: {product.DiscountedPrice:C}");
+                }
+            }
         }
 
-        /// <summary>
-        /// 10. (Open-ended) Combine multiple joins or navigation properties
-        ///     to retrieve a more complex set of data. For example:
-        ///     - All orders that contain products in a certain category
-        ///       (e.g., "Electronics"), including the store where each product
-        ///       is stocked most. (Requires `Stocks`, `Store`, `ProductCategory`, etc.)
-        ///     - Or any custom scenario that spans multiple tables.
-        /// </summary>
+
         public async Task Task10_AdvancedQueryExample()
         {
-            // TODO: Design your own complex query that demonstrates
-            //       multiple joins or navigation paths. For example:
-            //       - Orders that contain any product from "Electronics" category.
-            //       - Then, find which store has the highest stock of that product.
-            //       - Print results.
+            var query = await _dbContext.Orders
+                .Where(o => o.OrderItems.Any(oi => oi.Product.Categories.Any(c => c.CategoryName == "Electronics")))
+                .Select(o => new
+                {
+                    OrderId = o.OrderId,
+                    CustomerName = o.Customer.FirstName + " " + o.Customer.LastName,
+                    OrderDate = o.OrderDate,
+                    ElectronicProducts = o.OrderItems
+                        .Where(oi => oi.Product.Categories.Any(c => c.CategoryName == "Electronics"))
+                        .Select(oi => new
+                        {
+                            ProductName = oi.Product.ProductName,
+                            Quantity = oi.Quantity,
+                            UnitPrice = oi.UnitPrice,
+                            Categories = oi.Product.Categories.Select(c => c.CategoryName),
+                            BestStock = oi.Product.Stocks
+                                .OrderByDescending(s => s.QuantityInStock)
+                                .Select(s => new
+                                {
+                                    StoreName = s.Store.StoreName,
+                                    Quantity = s.QuantityInStock
+                                })
+                                .FirstOrDefault()
+                        })
+                })
+                .AsNoTracking()
+                .ToListAsync();
 
-            // Here's an outline you could explore:
-            // 1) Filter products by category name "Electronics"
-            // 2) Find any orders that contain these products
-            // 3) For each of those products, find the store with the max stock
-            //    (requires .MaxBy(...) in .NET 6+ or custom code in older versions)
-            // 4) Print a combined result
-
-            // (Implementation is left as an exercise.)
             Console.WriteLine(" ");
             Console.WriteLine("=== Task 10: Advanced Query Example ===");
+            Console.WriteLine("Orders containing electronics products and stores with highest stock:");
+
+            int orderCount = 1;
+            foreach (var order in query)
+            {
+                Console.WriteLine($"{orderCount}. Order ID: {order.OrderId}");
+                Console.WriteLine($"   Customer: {order.CustomerName}");
+                Console.WriteLine($"   Date: {order.OrderDate:d}");
+
+                int productCount = 1;
+                foreach (var product in order.ElectronicProducts)
+                {
+                    Console.WriteLine($"   {productCount}. Product: {product.ProductName}");
+                    Console.WriteLine($"      Categories: {string.Join(", ", product.Categories)}");
+                    Console.WriteLine($"      Quantity Ordered: {product.Quantity}");
+                    Console.WriteLine($"      Unit Price: {product.UnitPrice:C}");
+
+                    if (product.BestStock != null)
+                    {
+                        Console.WriteLine($"      Best Availability: {product.BestStock.StoreName}");
+                        Console.WriteLine($"      Stock Quantity: {product.BestStock.Quantity}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("      No stock information available");
+                    }
+
+                    productCount++;
+                }
+                orderCount++;
+            }
         }
 
     }
