@@ -157,13 +157,9 @@ namespace WebStore.Assignments
                 count++;
             }
         }
-        /// 7. Show all orders placed in the last 30 days (relative to now).
-        ///    - Display order ID, date, and customer name.
-        /// </summary>
+
         public async Task Task07_RecentOrders()
         {
-            // TODO: Filter orders to only those with OrderDate >= (DateTime.Now - 30 days).
-            //       Output ID, date, and the customer's name.
             var monthBefore = DateTime.Now.AddDays(-30);
             var query = await _dbContext.Orders
                 .Where(o => o.OrderDate <= monthBefore)
